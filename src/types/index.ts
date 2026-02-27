@@ -10,6 +10,16 @@ export interface LayoffEntry {
   raisedMM: number | null;
   country: string;
   dateAdded: string;
+  division?: string;
+  aiRelated?: boolean;
+}
+
+export interface Headline {
+  text: string;
+  source: string;
+  company: string;
+  date: string;
+  type: 'quote' | 'headline' | 'stat';
 }
 
 export interface MonthlyData {

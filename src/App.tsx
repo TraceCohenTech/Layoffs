@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { layoffsData, allIndustries, allCountries, yearRange } from './data/layoffs';
+import { layoffsData, allCountries, yearRange } from './data/layoffs';
+import { enrichData, headlines } from './data/enrichments';
 import { filterData, calculateKPIs, getMonthlyData, getIndustryData, getCountryData, getStageData, getYearData, getHeatmapData, getTopCompanies } from './utils/calculations';
 import type { FilterState } from './types';
 
 import { Header } from './components/Header';
 import { KPICards } from './components/KPICards';
+import { HeadlinesTicker } from './components/HeadlinesTicker';
 import { FilterBar } from './components/FilterBar';
 import { TimelineChart } from './components/TimelineChart';
 import { IndustryChart } from './components/IndustryChart';
@@ -13,17 +15,22 @@ import { CountryChart } from './components/CountryChart';
 import { TopCompanies } from './components/TopCompanies';
 import { YearComparison } from './components/YearComparison';
 import { MonthlyHeatmap } from './components/MonthlyHeatmap';
-import { DataTable } from './components/DataTable';
+import { AIInsights } from './components/AIInsights';
+
+// Enrich base data with divisions, AI tags, and additional companies
+const enrichedData = enrichData(layoffsData);
+const enrichedIndustries = Array.from(new Set(enrichedData.map(d => d.industry))).filter(Boolean).sort();
+const enrichedCountries = Array.from(new Set([...allCountries, ...enrichedData.map(d => d.country)])).filter(Boolean).sort();
 
 function App() {
   const [filters, setFilters] = useState<FilterState>({
-    yearRange: [yearRange[0], yearRange[1]],
+    yearRange: [2022, yearRange[1]],
     industry: '',
     country: '',
     search: '',
   });
 
-  const filteredData = useMemo(() => filterData(layoffsData, filters), [filters]);
+  const filteredData = useMemo(() => filterData(enrichedData, filters), [filters]);
   const kpis = useMemo(() => calculateKPIs(filteredData), [filteredData]);
   const monthlyData = useMemo(() => getMonthlyData(filteredData), [filteredData]);
   const industryData = useMemo(() => getIndustryData(filteredData), [filteredData]);
@@ -33,27 +40,44 @@ function App() {
   const heatmapData = useMemo(() => getHeatmapData(filteredData), [filteredData]);
   const topCompanies = useMemo(() => getTopCompanies(filteredData), [filteredData]);
 
+  // AI-related stats
+  const aiStats = useMemo(() => {
+    const aiEntries = filteredData.filter(d => d.aiRelated);
+    const aiLaidOff = aiEntries.reduce((s, d) => s + (d.laidOff ?? 0), 0);
+    return {
+      count: aiEntries.length,
+      totalLaidOff: aiLaidOff,
+      percentage: filteredData.length > 0 ? Math.round((aiEntries.length / filteredData.length) * 100) : 0,
+    };
+  }, [filteredData]);
+
   return (
     <div className="min-h-screen">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-8 py-6">
         {/* Header */}
         <Header totalLaidOff={kpis.totalLaidOff} totalCompanies={kpis.totalCompanies} />
 
+        {/* Headlines Ticker */}
+        <HeadlinesTicker headlines={headlines} />
+
         {/* KPI Cards */}
-        <KPICards kpis={kpis} />
+        <KPICards kpis={kpis} aiStats={aiStats} />
 
         {/* Filter Bar */}
         <FilterBar
           filters={filters}
           onFilterChange={setFilters}
-          industries={allIndustries}
-          countries={allCountries}
+          industries={enrichedIndustries}
+          countries={enrichedCountries}
           yearMin={yearRange[0]}
           yearMax={yearRange[1]}
         />
 
         {/* Timeline */}
         <TimelineChart data={monthlyData} />
+
+        {/* AI Insights */}
+        <AIInsights data={filteredData} />
 
         {/* Industry + Stage row */}
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
@@ -73,18 +97,13 @@ function App() {
         {/* Monthly Heatmap */}
         <MonthlyHeatmap data={heatmapData} />
 
-        {/* Data Table */}
-        <section className="mb-8">
-          <DataTable data={filteredData} />
-        </section>
-
         {/* Footer */}
-        <footer className="mt-12 py-6 border-t border-slate-800 text-center">
-          <p className="text-sm text-slate-400 mb-2">
-            Built by <span className="text-slate-200 font-medium">Trace Cohen</span>
+        <footer className="mt-12 py-6 border-t border-slate-200 text-center">
+          <p className="text-sm text-slate-500 mb-2">
+            Built by <span className="text-slate-800 font-medium">Trace Cohen</span>
           </p>
-          <p className="text-xs text-slate-500">
-            Data sourced from layoffs.fyi. {layoffsData.length.toLocaleString()} layoff events tracked.
+          <p className="text-xs text-slate-400">
+            Data sourced from layoffs.fyi + additional research. {enrichedData.length.toLocaleString()} layoff events tracked.
           </p>
         </footer>
       </main>

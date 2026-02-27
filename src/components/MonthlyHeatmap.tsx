@@ -10,13 +10,20 @@ interface MonthlyHeatmapProps {
 }
 
 function getColor(value: number, max: number): string {
-  if (value === 0) return 'rgba(30, 41, 59, 0.5)';
+  if (value === 0) return 'rgba(241, 245, 249, 0.8)';
   const intensity = Math.min(value / max, 1);
   if (intensity < 0.2) return 'rgba(59, 130, 246, 0.15)';
   if (intensity < 0.4) return 'rgba(59, 130, 246, 0.3)';
-  if (intensity < 0.6) return 'rgba(249, 115, 22, 0.4)';
-  if (intensity < 0.8) return 'rgba(249, 115, 22, 0.6)';
-  return 'rgba(244, 63, 94, 0.7)';
+  if (intensity < 0.6) return 'rgba(249, 115, 22, 0.35)';
+  if (intensity < 0.8) return 'rgba(249, 115, 22, 0.55)';
+  return 'rgba(244, 63, 94, 0.65)';
+}
+
+function getTextColor(value: number, max: number): string {
+  if (value === 0) return '';
+  const intensity = Math.min(value / max, 1);
+  if (intensity < 0.4) return 'text-slate-700';
+  return 'text-white';
 }
 
 export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
@@ -36,10 +43,10 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
-      className="glass rounded-xl border border-slate-700/50 p-6 mb-8"
+      className="glass rounded-xl border border-slate-200/80 p-6 mb-8"
     >
-      <h2 className="text-lg font-semibold text-slate-100 mb-1">Monthly Heatmap</h2>
-      <p className="text-sm text-slate-400 mb-6">Layoff intensity by month and year</p>
+      <h2 className="text-lg font-semibold text-slate-900 mb-1">Monthly Heatmap</h2>
+      <p className="text-sm text-slate-500 mb-6">Layoff intensity by month and year</p>
 
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -59,7 +66,7 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
                 animate={inView ? { opacity: 1, x: 0 } : {}}
                 transition={{ delay: yi * 0.05 }}
               >
-                <td className="text-xs text-slate-400 font-medium pr-3 py-0.5">{year}</td>
+                <td className="text-xs text-slate-600 font-medium pr-3 py-0.5">{year}</td>
                 {Array.from({ length: 12 }, (_, m) => {
                   const cell = lookup.get(`${year}-${m}`);
                   const value = cell?.value ?? 0;
@@ -71,7 +78,7 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
                         title={`${MONTH_NAMES[m]} ${year}: ${value.toLocaleString()} laid off`}
                       >
                         {value > 0 ? (
-                          <span className="text-slate-200">{formatNumber(value)}</span>
+                          <span className={getTextColor(value, max)}>{formatNumber(value)}</span>
                         ) : null}
                       </div>
                     </td>
