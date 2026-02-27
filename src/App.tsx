@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { layoffsData, allCountries, yearRange } from './data/layoffs';
 import { enrichData, headlines } from './data/enrichments';
-import { filterData, calculateKPIs, getMonthlyData, getIndustryData, getCountryData, getStageData, getYearData, getHeatmapData, getTopCompanies, calculateTrends, getSparklineData } from './utils/calculations';
+import { filterData, calculateKPIs, getMonthlyData, getIndustryData, getCountryData, getStageData, getYearData, getHeatmapData, getTopCompanies, calculateTrends, getSparklineData, getWorkforceImpactData } from './utils/calculations';
 import type { FilterState } from './types';
 
 import { Header } from './components/Header';
@@ -17,6 +17,7 @@ import { YearComparison } from './components/YearComparison';
 import { MonthlyHeatmap } from './components/MonthlyHeatmap';
 import { AIInsights } from './components/AIInsights';
 import { SectionHeader } from './components/SectionHeader';
+import { WorkforceImpact } from './components/WorkforceImpact';
 
 // Enrich base data with divisions, AI tags, and additional companies
 const enrichedData = enrichData(layoffsData);
@@ -42,6 +43,7 @@ function App() {
   const topCompanies = useMemo(() => getTopCompanies(filteredData), [filteredData]);
   const trends = useMemo(() => calculateTrends(filteredData), [filteredData]);
   const sparkline = useMemo(() => getSparklineData(filteredData), [filteredData]);
+  const workforceData = useMemo(() => getWorkforceImpactData(filteredData), [filteredData]);
 
   // AI-related stats
   const aiStats = useMemo(() => {
@@ -97,6 +99,8 @@ function App() {
           <IndustryChart data={industryData} totalLaidOff={kpis.totalLaidOff} />
           <StageDonut data={stageData} />
         </section>
+
+        <WorkforceImpact data={workforceData} />
 
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
           <CountryChart data={countryData} totalLaidOff={kpis.totalLaidOff} />

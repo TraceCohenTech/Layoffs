@@ -285,6 +285,30 @@ export const headlines: Headline[] = [
 ];
 
 // ============================================================
+// Estimated total workforce by company (for % of workforce calc)
+// ============================================================
+const WORKFORCE_DATA: Record<string, number> = {
+  'Intel': 124000,
+  'Verizon': 105000,
+  'Dell': 133000,
+  'Ford': 177000,
+  'PwC': 75000,
+  'Salesforce': 73000,
+  'IBM': 288000,
+  'American Airlines': 130000,
+  'Paramount': 24500,
+  'General Motors': 163000,
+  'Applied Materials': 34000,
+  'Meta': 67000,
+  'UPS': 490000,
+  'Amazon': 1560000,
+  'Microsoft': 221000,
+  'Accenture': 801000,
+  'Target': 440000,
+  'Kroger': 409000,
+};
+
+// ============================================================
 // Apply enrichments to base data
 // ============================================================
 export function enrichData(baseData: LayoffEntry[]): LayoffEntry[] {
@@ -310,10 +334,18 @@ export function enrichData(baseData: LayoffEntry[]): LayoffEntry[] {
       }
     }
 
+    const estEmployees = WORKFORCE_DATA[entry.company] ?? entry.estEmployees;
+    let percentage = entry.percentage;
+    if (!percentage && estEmployees && entry.laidOff) {
+      percentage = Math.round((entry.laidOff / estEmployees) * 1000) / 10;
+    }
+
     return {
       ...entry,
       division: enrichment?.division ?? entry.division,
       aiRelated: aiRelated || entry.aiRelated,
+      estEmployees,
+      percentage,
     };
   });
 

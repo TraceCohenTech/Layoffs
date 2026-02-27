@@ -192,6 +192,40 @@ export function getHeatmapData(data: LayoffEntry[]): HeatmapCell[] {
   return Array.from(map.values());
 }
 
+export interface WorkforceImpactEntry {
+  company: string;
+  totalLaidOff: number;
+  estEmployees: number;
+  pctOfWorkforce: number;
+}
+
+export function getWorkforceImpactData(data: LayoffEntry[]): WorkforceImpactEntry[] {
+  const map = new Map<string, { totalLaidOff: number; estEmployees: number | undefined }>();
+
+  for (const d of data) {
+    if (!map.has(d.company)) {
+      map.set(d.company, { totalLaidOff: 0, estEmployees: d.estEmployees });
+    }
+    const entry = map.get(d.company)!;
+    if (d.laidOff !== null) entry.totalLaidOff += d.laidOff;
+    if (!entry.estEmployees && d.estEmployees) entry.estEmployees = d.estEmployees;
+  }
+
+  const results: WorkforceImpactEntry[] = [];
+  for (const [company, val] of map) {
+    if (val.totalLaidOff > 0 && val.estEmployees) {
+      results.push({
+        company,
+        totalLaidOff: val.totalLaidOff,
+        estEmployees: val.estEmployees,
+        pctOfWorkforce: Math.round((val.totalLaidOff / val.estEmployees) * 1000) / 10,
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.pctOfWorkforce - a.pctOfWorkforce);
+}
+
 export function getTopCompanies(data: LayoffEntry[], limit = 15): LayoffEntry[] {
   return [...data]
     .filter(d => d.laidOff !== null && d.laidOff > 0)

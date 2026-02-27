@@ -12,6 +12,7 @@ export interface LayoffEntry {
   dateAdded: string;
   division?: string;
   aiRelated?: boolean;
+  estEmployees?: number;
 }
 
 export interface Headline {
