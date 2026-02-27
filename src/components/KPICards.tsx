@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Users, Building2, TrendingDown, AlertTriangle, Factory, Bot } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 import { useInView } from '../hooks/useInView';
 import { formatNumber } from '../utils/calculations';
@@ -11,34 +11,78 @@ interface KPICardProps {
   suffix?: string;
   prefix?: string;
   detail?: string;
-  icon: React.ReactNode;
-  color: string;
+  trend?: number | null;
+  sparkline?: number[];
+  accentColor: string;
   delay: number;
+  size?: 'primary' | 'secondary';
 }
 
-function KPICard({ label, value, suffix, prefix, detail, icon, color, delay }: KPICardProps) {
+function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const w = 80;
+  const h = 28;
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={w} height={h} className="opacity-40">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TrendBadge({ value }: { value: number }) {
+  const isPositive = value > 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${
+      isPositive ? 'text-rose-600' : 'text-emerald-600'
+    }`}>
+      {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {isPositive ? '+' : ''}{value}% YoY
+    </span>
+  );
+}
+
+function KPICard({ label, value, suffix, prefix, detail, trend, sparkline, accentColor, delay, size = 'primary' }: KPICardProps) {
   const [ref, inView] = useInView();
   const animated = useCountUp({ end: value, duration: 2000, delay: delay * 100, enabled: inView });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ delay: delay * 0.1, duration: 0.5 }}
-      whileHover={{ scale: 1.03, y: -3 }}
-      className="glass rounded-xl border border-slate-200/80 p-5 hover:border-slate-300 transition-all duration-200"
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: delay * 0.08, duration: 0.5 }}
+      whileHover={{ y: -4 }}
+      className="glass rounded-xl border border-slate-200/60 p-5 transition-all duration-300 cursor-default"
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">{label}</span>
-        <div className={`p-2 rounded-lg ${color}`}>
-          {icon}
-        </div>
+        {sparkline && sparkline.length > 1 && (
+          <MiniSparkline data={sparkline} color={accentColor} />
+        )}
       </div>
-      <p className="text-2xl md:text-3xl font-bold text-slate-900 tabular-nums">
+      <p className={`${size === 'primary' ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'} font-bold text-slate-900 tabular-nums`}>
         {prefix}{formatNumber(animated)}{suffix}
       </p>
-      {detail && <p className="text-xs text-slate-500 mt-1.5">{detail}</p>}
+      <div className="flex items-center gap-2 mt-1.5">
+        {detail && <p className="text-xs text-slate-500">{detail}</p>}
+        {trend != null && trend !== 0 && <TrendBadge value={trend} />}
+      </div>
     </motion.div>
   );
 }
@@ -46,61 +90,69 @@ function KPICard({ label, value, suffix, prefix, detail, icon, color, delay }: K
 interface KPICardsProps {
   kpis: KPIData;
   aiStats: { count: number; totalLaidOff: number; percentage: number };
+  trends: { totalLaidOffChange: number | null; companiesChange: number | null; avgSizeChange: number | null };
+  sparkline: number[];
 }
 
-export function KPICards({ kpis, aiStats }: KPICardsProps) {
+export function KPICards({ kpis, aiStats, trends, sparkline }: KPICardsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-      <KPICard
-        label="Total Laid Off"
-        value={kpis.totalLaidOff}
-        icon={<Users className="w-4 h-4 text-rose-500" />}
-        color="bg-rose-50"
-        detail="Workers affected"
-        delay={0}
-      />
-      <KPICard
-        label="Companies"
-        value={kpis.totalCompanies}
-        icon={<Building2 className="w-4 h-4 text-blue-500" />}
-        color="bg-blue-50"
-        detail="Layoff events"
-        delay={1}
-      />
-      <KPICard
-        label="Average Size"
-        value={kpis.averageSize}
-        icon={<TrendingDown className="w-4 h-4 text-amber-500" />}
-        color="bg-amber-50"
-        detail="Per layoff event"
-        delay={2}
-      />
-      <KPICard
-        label="Largest Single"
-        value={kpis.largestLayoff}
-        icon={<AlertTriangle className="w-4 h-4 text-orange-500" />}
-        color="bg-orange-50"
-        detail={kpis.largestCompany}
-        delay={3}
-      />
-      <KPICard
-        label="Top Industry"
-        value={kpis.topIndustryCount}
-        suffix=" events"
-        icon={<Factory className="w-4 h-4 text-emerald-500" />}
-        color="bg-emerald-50"
-        detail={kpis.topIndustry}
-        delay={4}
-      />
-      <KPICard
-        label="AI-Attributed"
-        value={aiStats.count}
-        suffix=" events"
-        icon={<Bot className="w-4 h-4 text-cyan-500" />}
-        color="bg-cyan-50"
-        detail={`${aiStats.percentage}% of all layoffs`}
-        delay={5}
-      />
+    <div className="space-y-4 mb-8">
+      {/* Primary 4 cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard
+          label="Total Laid Off"
+          value={kpis.totalLaidOff}
+          accentColor="#dc2626"
+          detail="Workers affected"
+          trend={trends.totalLaidOffChange}
+          sparkline={sparkline}
+          delay={0}
+        />
+        <KPICard
+          label="Companies"
+          value={kpis.totalCompanies}
+          accentColor="#2563eb"
+          detail="Layoff events"
+          trend={trends.companiesChange}
+          delay={1}
+        />
+        <KPICard
+          label="Average Size"
+          value={kpis.averageSize}
+          accentColor="#d97706"
+          detail="Per layoff event"
+          trend={trends.avgSizeChange}
+          delay={2}
+        />
+        <KPICard
+          label="AI-Attributed"
+          value={aiStats.count}
+          suffix=" events"
+          accentColor="#7c3aed"
+          detail={`${aiStats.percentage}% of all layoffs`}
+          delay={3}
+        />
+      </div>
+      {/* Secondary 2 cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <KPICard
+          label="Largest Single"
+          value={kpis.largestLayoff}
+          accentColor="#ea580c"
+          detail={kpis.largestCompany}
+          delay={4}
+          size="secondary"
+        />
+        <KPICard
+          label="Top Industry"
+          value={kpis.topIndustryCount}
+          suffix=" events"
+          accentColor="#059669"
+          detail={kpis.topIndustry}
+          delay={5}
+          size="secondary"
+        />
+      </div>
     </div>
   );
 }

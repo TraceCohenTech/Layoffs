@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, ReferenceDot } from 'recharts';
 import { useInView } from '../hooks/useInView';
-import { formatNumber } from '../utils/calculations';
+import { formatNumber, getPeakMonth } from '../utils/calculations';
 import { TOOLTIP_STYLE, TOOLTIP_LABEL_STYLE, GRID_STROKE, AXIS_TICK_FILL, AXIS_LINE_STROKE, AXIS_FONT_SIZE } from '../utils/chartTheme';
 import type { MonthlyData } from '../types';
 
@@ -12,33 +12,24 @@ const PHASES = [
     label: 'The Correction',
     yearStart: 2022,
     yearEnd: 2023,
-    color: '#f43f5e',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    text: 'text-rose-600',
-    description: 'Post-pandemic over-hiring reversal. Companies that doubled headcount during COVID aggressively right-sized.',
+    color: '#dc2626',
+    description: 'Post-pandemic over-hiring reversal',
   },
   {
     id: 'transition',
     label: 'The Transition',
     yearStart: 2024,
     yearEnd: 2024,
-    color: '#f59e0b',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-600',
-    description: 'Layoffs moderated but rationale shifted from "we over-hired" to "we need to invest differently."',
+    color: '#d97706',
+    description: 'Shift to strategic restructuring',
   },
   {
     id: 'ai',
     label: 'The AI Restructuring',
     yearStart: 2025,
     yearEnd: 2026,
-    color: '#06b6d4',
-    bg: 'bg-cyan-50',
-    border: 'border-cyan-200',
-    text: 'text-cyan-600',
-    description: 'Companies explicitly replace headcount with AI. Budgets move from people to infrastructure.',
+    color: '#7c3aed',
+    description: 'AI-driven headcount replacement',
   },
 ];
 
@@ -78,50 +69,26 @@ export function TimelineChart({ data }: TimelineChartProps) {
     return boundaries;
   }, [data]);
 
+  const peak = useMemo(() => getPeakMonth(data), [data]);
+
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
-      className="glass rounded-xl border border-slate-200/80 p-6 mb-8"
+      className="glass rounded-xl border border-slate-200/60 p-6 mb-8"
     >
       <h2 className="text-lg font-semibold text-slate-900 mb-1">Monthly Layoff Volume</h2>
       <p className="text-sm text-slate-500 mb-4">Total employees laid off per month with market phase annotations</p>
 
-      {/* Phase legend cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        {phaseBounds.map((phase, i) => (
-          <motion.div
-            key={phase.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.2 + i * 0.1 }}
-            className={`${phase.bg} border ${phase.border} rounded-lg p-3`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: phase.color, opacity: 0.8 }} />
-              <span className={`text-xs font-bold ${phase.text}`}>{phase.label}</span>
-              <span className="text-[11px] text-slate-400 ml-auto">
-                {phase.yearStart}{phase.yearEnd !== phase.yearStart ? `–${phase.yearEnd}` : ''}
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed mb-2">{phase.description}</p>
-            <div className="flex gap-3 text-[11px]">
-              <span className="text-slate-700 font-semibold">{formatNumber(phase.totalLaidOff)} laid off</span>
-              <span className="text-slate-400">{phase.totalCompanies.toLocaleString()} events</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="h-[350px]">
+      <div className="h-[380px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -131,10 +98,18 @@ export function TimelineChart({ data }: TimelineChartProps) {
                 x1={phase.startMonth!}
                 x2={phase.endMonth!}
                 fill={phase.color}
-                fillOpacity={0.06}
+                fillOpacity={0.05}
                 stroke={phase.color}
-                strokeOpacity={0.15}
+                strokeOpacity={0.12}
                 strokeDasharray="4 4"
+                label={{
+                  value: phase.label,
+                  position: 'insideTop',
+                  fill: phase.color,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  opacity: 0.6,
+                }}
               />
             ))}
 
@@ -167,10 +142,22 @@ export function TimelineChart({ data }: TimelineChartProps) {
               formatter={(value: number) => [value.toLocaleString(), 'Laid Off']}
               labelStyle={TOOLTIP_LABEL_STYLE}
             />
+
+            {peak && (
+              <ReferenceDot
+                x={peak.month}
+                y={peak.totalLaidOff}
+                r={5}
+                fill="#dc2626"
+                stroke="#fff"
+                strokeWidth={2}
+              />
+            )}
+
             <Area
               type="monotone"
               dataKey="totalLaidOff"
-              stroke="#3b82f6"
+              stroke="#2563eb"
               strokeWidth={2.5}
               fill="url(#areaGradient)"
               animationDuration={1500}
@@ -178,6 +165,26 @@ export function TimelineChart({ data }: TimelineChartProps) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Compact phase legend strip */}
+      <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-slate-100">
+        {phaseBounds.map(phase => (
+          <div key={phase.id} className="flex items-center gap-2 text-xs">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: phase.color }} />
+            <span className="font-semibold text-slate-700">{phase.label}</span>
+            <span className="text-slate-400">
+              {phase.yearStart}{phase.yearEnd !== phase.yearStart ? `–${phase.yearEnd}` : ''} · {formatNumber(phase.totalLaidOff)} laid off · {phase.totalCompanies.toLocaleString()} events
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart insight callout */}
+      {peak && (
+        <div className="chart-insight">
+          <strong>Peak:</strong> {formatNumber(peak.totalLaidOff)} laid off in {peak.month}
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from '../hooks/useInView';
 import { formatNumber } from '../utils/calculations';
+import { HEATMAP_SCALE } from '../utils/chartTheme';
 import type { HeatmapCell } from '../types';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -10,24 +12,24 @@ interface MonthlyHeatmapProps {
 }
 
 function getColor(value: number, max: number): string {
-  if (value === 0) return 'rgba(241, 245, 249, 0.8)';
+  if (value === 0) return HEATMAP_SCALE[0];
   const intensity = Math.min(value / max, 1);
-  if (intensity < 0.2) return 'rgba(59, 130, 246, 0.15)';
-  if (intensity < 0.4) return 'rgba(59, 130, 246, 0.3)';
-  if (intensity < 0.6) return 'rgba(249, 115, 22, 0.35)';
-  if (intensity < 0.8) return 'rgba(249, 115, 22, 0.55)';
-  return 'rgba(244, 63, 94, 0.65)';
+  if (intensity < 0.2) return HEATMAP_SCALE[1];
+  if (intensity < 0.45) return HEATMAP_SCALE[2];
+  if (intensity < 0.7) return HEATMAP_SCALE[3];
+  return HEATMAP_SCALE[4];
 }
 
 function getTextColor(value: number, max: number): string {
   if (value === 0) return '';
   const intensity = Math.min(value / max, 1);
-  if (intensity < 0.4) return 'text-slate-700';
+  if (intensity < 0.45) return 'text-slate-700';
   return 'text-white';
 }
 
 export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
   const [ref, inView] = useInView();
+  const [hoveredCell, setHoveredCell] = useState<HeatmapCell | null>(null);
 
   const years = Array.from(new Set(data.map(d => d.year))).sort();
   const max = Math.max(...data.map(d => d.value), 1);
@@ -43,7 +45,7 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
-      className="glass rounded-xl border border-slate-200/80 p-6 mb-8"
+      className="glass rounded-xl border border-slate-200/60 p-6 mb-8"
     >
       <h2 className="text-lg font-semibold text-slate-900 mb-1">Monthly Heatmap</h2>
       <p className="text-sm text-slate-500 mb-6">Layoff intensity by month and year</p>
@@ -75,7 +77,8 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
                       <div
                         className="w-full aspect-square rounded-sm flex items-center justify-center text-[9px] font-medium min-w-[28px] min-h-[28px] cursor-default transition-transform hover:scale-110"
                         style={{ backgroundColor: getColor(value, max) }}
-                        title={`${MONTH_NAMES[m]} ${year}: ${value.toLocaleString()} laid off`}
+                        onMouseEnter={() => cell && setHoveredCell(cell)}
+                        onMouseLeave={() => setHoveredCell(null)}
                       >
                         {value > 0 ? (
                           <span className={getTextColor(value, max)}>{formatNumber(value)}</span>
@@ -90,14 +93,21 @@ export function MonthlyHeatmap({ data }: MonthlyHeatmapProps) {
         </table>
       </div>
 
+      {/* Hover detail panel */}
+      {hoveredCell && hoveredCell.value > 0 && (
+        <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-700 border border-slate-200">
+          <strong>{MONTH_NAMES[hoveredCell.month]} {hoveredCell.year}:</strong> {hoveredCell.value.toLocaleString()} employees laid off
+        </div>
+      )}
+
       {/* Legend */}
       <div className="flex items-center gap-2 mt-4 text-xs text-slate-500">
         <span>Less</span>
-        {[0.1, 0.3, 0.5, 0.7, 0.9].map(i => (
+        {HEATMAP_SCALE.slice(1).map((color, i) => (
           <div
             key={i}
             className="w-4 h-4 rounded-sm"
-            style={{ backgroundColor: getColor(max * i, max) }}
+            style={{ backgroundColor: color }}
           />
         ))}
         <span>More</span>

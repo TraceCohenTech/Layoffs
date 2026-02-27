@@ -204,3 +204,53 @@ export function formatNumber(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString();
 }
+
+/** Calculate YoY trends for KPI cards */
+export function calculateTrends(data: LayoffEntry[]): {
+  totalLaidOffChange: number | null;
+  companiesChange: number | null;
+  avgSizeChange: number | null;
+} {
+  const byYear = new Map<number, { total: number; count: number; withCount: number }>();
+  for (const d of data) {
+    const date = parseDate(d.date);
+    if (isNaN(date.getTime())) continue;
+    const year = date.getFullYear();
+    if (!byYear.has(year)) byYear.set(year, { total: 0, count: 0, withCount: 0 });
+    const entry = byYear.get(year)!;
+    entry.count++;
+    if (d.laidOff !== null && d.laidOff > 0) {
+      entry.total += d.laidOff;
+      entry.withCount++;
+    }
+  }
+
+  const years = Array.from(byYear.keys()).sort();
+  if (years.length < 2) return { totalLaidOffChange: null, companiesChange: null, avgSizeChange: null };
+
+  const curr = byYear.get(years[years.length - 1])!;
+  const prev = byYear.get(years[years.length - 2])!;
+
+  const pct = (a: number, b: number) => b > 0 ? Math.round(((a - b) / b) * 100) : null;
+
+  return {
+    totalLaidOffChange: pct(curr.total, prev.total),
+    companiesChange: pct(curr.count, prev.count),
+    avgSizeChange: pct(
+      curr.withCount > 0 ? Math.round(curr.total / curr.withCount) : 0,
+      prev.withCount > 0 ? Math.round(prev.total / prev.withCount) : 0,
+    ),
+  };
+}
+
+/** Get sparkline data: last 12 months of total laid off */
+export function getSparklineData(data: LayoffEntry[]): number[] {
+  const monthly = getMonthlyData(data);
+  return monthly.slice(-12).map(m => m.totalLaidOff);
+}
+
+/** Find the peak month from monthly data */
+export function getPeakMonth(data: MonthlyData[]): MonthlyData | null {
+  if (data.length === 0) return null;
+  return data.reduce((peak, d) => d.totalLaidOff > peak.totalLaidOff ? d : peak, data[0]);
+}

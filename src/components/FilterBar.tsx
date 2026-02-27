@@ -22,7 +22,7 @@ export function FilterBar({ filters, onFilterChange, industries, countries, year
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="glass rounded-xl border border-slate-200/80 p-4 mb-8"
+      className="glass rounded-xl border border-slate-200/60 p-4 mb-8"
     >
       <div className="flex items-center gap-2 mb-3">
         <Filter className="w-4 h-4 text-blue-500" />

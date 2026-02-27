@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Bot, Zap } from 'lucide-react';
 import { useInView } from '../hooks/useInView';
 import { parseDate, formatNumber } from '../utils/calculations';
-import { TOOLTIP_STYLE, TOOLTIP_LABEL_STYLE, GRID_STROKE, AXIS_TICK_FILL, AXIS_LINE_STROKE, AXIS_FONT_SIZE } from '../utils/chartTheme';
+import { TOOLTIP_STYLE, TOOLTIP_LABEL_STYLE, GRID_STROKE, AXIS_TICK_FILL, AXIS_LINE_STROKE, AXIS_FONT_SIZE, AI_COLOR } from '../utils/chartTheme';
 import type { LayoffEntry } from '../types';
 
 interface AIInsightsProps {
@@ -45,10 +45,11 @@ export function AIInsights({ data }: AIInsightsProps) {
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
-      className="glass rounded-xl border border-cyan-200 p-6 mb-8"
+      className="glass rounded-xl border border-violet-200/60 p-6 mb-8"
+      style={{ background: 'linear-gradient(135deg, rgba(237, 233, 254, 0.5) 0%, #ffffff 100%)' }}
     >
       <div className="flex items-center gap-2 mb-1">
-        <Bot className="w-5 h-5 text-cyan-500" />
+        <Bot className="w-5 h-5 text-violet-600" />
         <h2 className="text-lg font-semibold text-slate-900">AI-Attributed Layoffs</h2>
       </div>
       <p className="text-sm text-slate-500 mb-6">Layoffs explicitly tied to AI adoption, automation, or AI-driven restructuring</p>
@@ -77,7 +78,7 @@ export function AIInsights({ data }: AIInsightsProps) {
                   formatter={(value: number) => [value.toLocaleString(), 'AI Laid Off']}
                   labelStyle={TOOLTIP_LABEL_STYLE}
                 />
-                <Bar dataKey="aiLaidOff" fill="#06b6d4" fillOpacity={0.85} radius={[4, 4, 0, 0]} animationDuration={1200} />
+                <Bar dataKey="aiLaidOff" fill={AI_COLOR} fillOpacity={0.85} radius={[4, 4, 0, 0]} animationDuration={1200} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -92,10 +93,11 @@ export function AIInsights({ data }: AIInsightsProps) {
                 initial={{ opacity: 0, x: 10 }}
                 animate={inView ? { opacity: 1, x: 0 } : {}}
                 transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-cyan-300 transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-violet-300 transition-colors"
               >
+                <span className="flex-shrink-0 w-5 text-center text-[10px] font-bold text-violet-500">#{i + 1}</span>
                 <div className="flex-shrink-0 w-10 text-right">
-                  <span className="text-xs font-bold text-cyan-600 tabular-nums">
+                  <span className="text-xs font-bold text-violet-600 tabular-nums">
                     {formatNumber(d.laidOff ?? 0)}
                   </span>
                 </div>
@@ -111,7 +113,7 @@ export function AIInsights({ data }: AIInsightsProps) {
                     </div>
                   )}
                 </div>
-                <span className="px-1.5 py-0.5 text-[10px] rounded-md bg-cyan-50 text-cyan-600 border border-cyan-200 flex-shrink-0 font-medium">
+                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-violet-50 text-violet-600 border border-violet-200 flex-shrink-0 font-medium">
                   AI
                 </span>
               </motion.div>

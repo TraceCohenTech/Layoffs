@@ -5,14 +5,17 @@ import { formatNumber } from '../utils/calculations';
 import { TOOLTIP_STYLE, TOOLTIP_LABEL_STYLE, GRID_STROKE, AXIS_TICK_FILL, AXIS_LINE_STROKE, AXIS_FONT_SIZE } from '../utils/chartTheme';
 import type { CountryData } from '../types';
 
-const COLORS = ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b', '#f97316', '#f43f5e', '#8b5cf6', '#ec4899', '#14b8a6', '#84cc16', '#6366f1', '#a855f7'];
-
 interface CountryChartProps {
   data: CountryData[];
+  totalLaidOff: number;
 }
 
-export function CountryChart({ data }: CountryChartProps) {
+export function CountryChart({ data, totalLaidOff }: CountryChartProps) {
   const [ref, inView] = useInView();
+
+  const topPct = data.length > 0 && totalLaidOff > 0
+    ? Math.round((data[0].totalLaidOff / totalLaidOff) * 100)
+    : 0;
 
   return (
     <motion.div
@@ -20,7 +23,7 @@ export function CountryChart({ data }: CountryChartProps) {
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6 }}
-      className="glass rounded-xl border border-slate-200/80 p-6"
+      className="glass rounded-xl border border-slate-200/60 p-6"
     >
       <h2 className="text-lg font-semibold text-slate-900 mb-1">Top Countries</h2>
       <p className="text-sm text-slate-500 mb-6">By total employees laid off</p>
@@ -49,14 +52,24 @@ export function CountryChart({ data }: CountryChartProps) {
               formatter={(value: number) => [value.toLocaleString(), 'Laid Off']}
               labelStyle={TOOLTIP_LABEL_STYLE}
             />
-            <Bar dataKey="totalLaidOff" radius={[0, 4, 4, 0]} animationDuration={1200}>
+            <Bar dataKey="totalLaidOff" radius={[0, 6, 6, 0]} animationDuration={1200}>
               {data.map((_, index) => (
-                <Cell key={index} fill={COLORS[index % COLORS.length]} fillOpacity={0.85} />
+                <Cell
+                  key={index}
+                  fill="#0891b2"
+                  fillOpacity={1 - (index / data.length) * 0.7}
+                />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {data.length > 0 && topPct > 0 && (
+        <div className="chart-insight">
+          <strong>{data[0].country}</strong> alone accounts for {topPct}% of all layoffs
+        </div>
+      )}
     </motion.div>
   );
 }
