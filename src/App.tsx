@@ -137,10 +137,15 @@ function App() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <p className="text-sm text-slate-500">
-                Built by <span className="text-slate-800 font-medium">Trace Cohen</span>
+                Built by <a href="https://x.com/Trace_Cohen" target="_blank" rel="noopener noreferrer" className="text-slate-800 font-medium hover:text-slate-900 transition-colors">Trace Cohen</a>
               </p>
               <p className="text-xs text-slate-400 mt-0.5">
                 Data sourced from layoffs.fyi + additional research. {enrichedData.length.toLocaleString()} layoff events tracked.
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">
+                <a href="https://x.com/Trace_Cohen" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">@Trace_Cohen</a>
+                <span className="mx-2">·</span>
+                <a href="mailto:t@nyvp.com" className="hover:text-slate-600 transition-colors">t@nyvp.com</a>
               </p>
             </div>
             {lastUpdated && (
