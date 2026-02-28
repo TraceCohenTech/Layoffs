@@ -80,3 +80,33 @@ export interface KPIData {
   topIndustryCount: number;
   dateRange: string;
 }
+
+export interface CompanyFinancials {
+  company: string;
+  sector: string;
+  revenueMillions: number;
+  employeeCount: number;
+  revenuePerEmployee: number;
+}
+
+export interface HeadcountYear {
+  year: number;
+  count: number;
+  yoyChangePercent?: number;
+}
+
+export interface CompanyHistory {
+  company: string;
+  sector: string;
+  headcount: HeadcountYear[];
+}
+
+export interface EfficiencyMetric {
+  company: string;
+  sector: string;
+  revenuePerEmployee: number;
+  jobsPerBillionRevenue: number;
+  netAdded: number;
+  revenueMillions: number;
+  employeeCount: number;
+}

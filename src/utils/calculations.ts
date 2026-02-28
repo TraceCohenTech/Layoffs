@@ -1,4 +1,4 @@
-import type { LayoffEntry, MonthlyData, IndustryData, CountryData, StageData, YearData, HeatmapCell, KPIData, FilterState } from '../types';
+import type { LayoffEntry, MonthlyData, IndustryData, CountryData, StageData, YearData, HeatmapCell, KPIData, FilterState, CompanyFinancials, EfficiencyMetric } from '../types';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -287,4 +287,46 @@ export function getSparklineData(data: LayoffEntry[]): number[] {
 export function getPeakMonth(data: MonthlyData[]): MonthlyData | null {
   if (data.length === 0) return null;
   return data.reduce((peak, d) => d.totalLaidOff > peak.totalLaidOff ? d : peak, data[0]);
+}
+
+/** Sort companies by revenue per employee, descending */
+export function calcRevenuePerEmployee(financials: CompanyFinancials[], limit = 15): CompanyFinancials[] {
+  return [...financials]
+    .sort((a, b) => b.revenuePerEmployee - a.revenuePerEmployee)
+    .slice(0, limit);
+}
+
+/** Join financials + hiring data to compute efficiency metrics */
+export function calcEfficiencyMetrics(financials: CompanyFinancials[], hiringData: LayoffEntry[]): EfficiencyMetric[] {
+  // Aggregate net layoffs by company
+  const layoffsByCompany = new Map<string, number>();
+  for (const d of hiringData) {
+    if (d.laidOff !== null) {
+      layoffsByCompany.set(d.company, (layoffsByCompany.get(d.company) ?? 0) + d.laidOff);
+    }
+  }
+
+  return financials.map(f => {
+    const netAdded = layoffsByCompany.get(f.company) ?? 0;
+    const jobsPerBillionRevenue = f.revenueMillions > 0
+      ? Math.round((f.employeeCount / (f.revenueMillions / 1000)))
+      : 0;
+
+    return {
+      company: f.company,
+      sector: f.sector,
+      revenuePerEmployee: f.revenuePerEmployee,
+      jobsPerBillionRevenue,
+      netAdded,
+      revenueMillions: f.revenueMillions,
+      employeeCount: f.employeeCount,
+    };
+  });
+}
+
+/** Format currency values: $3.62M, $406K */
+export function formatCurrency(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
+  return `$${value.toLocaleString()}`;
 }

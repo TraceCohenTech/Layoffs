@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { layoffsData, allCountries, yearRange } from './data/layoffs';
 import { enrichData, headlines } from './data/enrichments';
-import { filterData, calculateKPIs, getMonthlyData, getIndustryData, getCountryData, getStageData, getYearData, getHeatmapData, getTopCompanies, calculateTrends, getSparklineData, getWorkforceImpactData } from './utils/calculations';
+import { financialsData } from './data/financials';
+import { historicalHeadcountData } from './data/historicalHeadcount';
+import { filterData, calculateKPIs, getMonthlyData, getIndustryData, getCountryData, getStageData, getYearData, getHeatmapData, getTopCompanies, calculateTrends, getSparklineData, getWorkforceImpactData, calcRevenuePerEmployee, calcEfficiencyMetrics } from './utils/calculations';
 import type { FilterState } from './types';
 
 import { Header } from './components/Header';
@@ -18,11 +20,17 @@ import { MonthlyHeatmap } from './components/MonthlyHeatmap';
 import { AIInsights } from './components/AIInsights';
 import { SectionHeader } from './components/SectionHeader';
 import { WorkforceImpact } from './components/WorkforceImpact';
+import { RevenuePerEmployee } from './components/RevenuePerEmployee';
+import { EfficiencyMetrics } from './components/EfficiencyMetrics';
+import { HistoricalHeadcount } from './components/HistoricalHeadcount';
 
 // Enrich base data with divisions, AI tags, and additional companies
 const enrichedData = enrichData(layoffsData);
 const enrichedIndustries = Array.from(new Set(enrichedData.map(d => d.industry))).filter(Boolean).sort();
 const enrichedCountries = Array.from(new Set([...allCountries, ...enrichedData.map(d => d.country)])).filter(Boolean).sort();
+
+// Pre-compute financial metrics (static data, no need for useMemo)
+const revenueRanked = calcRevenuePerEmployee(financialsData, 20);
 
 function App() {
   const [filters, setFilters] = useState<FilterState>({
@@ -44,6 +52,7 @@ function App() {
   const trends = useMemo(() => calculateTrends(filteredData), [filteredData]);
   const sparkline = useMemo(() => getSparklineData(filteredData), [filteredData]);
   const workforceData = useMemo(() => getWorkforceImpactData(filteredData), [filteredData]);
+  const efficiencyMetrics = useMemo(() => calcEfficiencyMetrics(financialsData, filteredData), [filteredData]);
 
   // AI-related stats
   const aiStats = useMemo(() => {
@@ -93,18 +102,27 @@ function App() {
         <SectionHeader title="The AI Factor" subtitle="Layoffs explicitly driven by AI adoption and automation" />
         <AIInsights data={filteredData} />
 
+        {/* Revenue Efficiency — NEW */}
+        <SectionHeader title="Revenue Efficiency" subtitle="Who generates the most per employee — inspired by Bullfincher.io" />
+        <RevenuePerEmployee data={revenueRanked} />
+        <EfficiencyMetrics data={efficiencyMetrics} />
+
         {/* Where It's Happening */}
         <SectionHeader title="Where It's Happening" subtitle="Industries, geographies, and companies most affected" />
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-          <IndustryChart data={industryData} totalLaidOff={kpis.totalLaidOff} />
+          <IndustryChart data={industryData} totalLaidOff={kpis.totalLaidOff} companies={filteredData} />
           <StageDonut data={stageData} />
         </section>
+
+        {/* Historical Headcount — NEW */}
+        <SectionHeader title="Historical Headcount" subtitle="Multi-year employee trends — inspired by MacroTrends" />
+        <HistoricalHeadcount data={historicalHeadcountData} />
 
         <WorkforceImpact data={workforceData} />
 
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
           <CountryChart data={countryData} totalLaidOff={kpis.totalLaidOff} />
-          <TopCompanies data={topCompanies} />
+          <TopCompanies data={topCompanies} financials={financialsData} histories={historicalHeadcountData} />
         </section>
 
         {/* Year over Year */}
