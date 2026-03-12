@@ -60,7 +60,8 @@ async function fetchDayPrices(
     if (!priceBefore || !priceDay) return null;
 
     return { priceBefore, priceDay, priceAfter };
-  } catch {
+  } catch (err) {
+    console.error(`[StockImpact] Failed to fetch ${symbol}:`, err);
     return null;
   }
 }
@@ -81,6 +82,7 @@ export async function fetchStockImpacts(
   const eligible = layoffEvents.filter(
     e => companyTickers[e.company] && e.laidOff && e.laidOff > 500
   );
+  console.log(`[StockImpact] ${layoffEvents.length} total events, ${eligible.length} eligible`);
 
   // Largest layoff per company
   const byCompany = new Map<string, { company: string; date: string; laidOff: number }>();
@@ -98,9 +100,12 @@ export async function fetchStockImpacts(
 
   const results: StockImpactResult[] = [];
 
+  console.log(`[StockImpact] Fetching ${top.length} companies:`, top.map(e => e.company));
+
   for (const event of top) {
     const symbol = companyTickers[event.company];
     const layoffDate = parseDateMMDDYYYY(event.date);
+    console.log(`[StockImpact] Fetching ${symbol} for ${event.company} (${event.date})`);
     const prices = await fetchDayPrices(symbol, layoffDate);
 
     if (prices) {
