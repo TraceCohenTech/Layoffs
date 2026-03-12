@@ -1,19 +1,29 @@
 export default async function handler(req, res) {
-  const { symbol, from, to, resolution = 'D' } = req.query;
+  const { symbol, from, to } = req.query;
 
   if (!symbol || !from || !to) {
     return res.status(400).json({ error: 'Missing required params: symbol, from, to' });
   }
 
-  const API_KEY = 'd6pggfhr01qo88aj43g0d6pggfhr01qo88aj43gg';
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=${encodeURIComponent(resolution)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&token=${API_KEY}`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${from}&period2=${to}&interval=1d`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
     const data = await response.json();
+    const result = data?.chart?.result?.[0];
+
+    if (!result || !result.timestamp) {
+      return res.status(200).json({ timestamps: [], closes: [] });
+    }
+
+    const timestamps = result.timestamp;
+    const closes = result.indicators.quote[0].close;
+
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=86400');
-    return res.status(200).json(data);
+    return res.status(200).json({ timestamps, closes });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to fetch Finnhub data' });
+    return res.status(500).json({ error: 'Failed to fetch stock data' });
   }
 }

@@ -1,96 +1,65 @@
 import { companyTickers } from '../data/tickers';
 
-const CACHE_KEY = 'finnhub_stock_impact';
-
-export interface DailyPrice {
-  date: string;
-  close: number;
-}
+const CACHE_KEY = 'stock_impact_v2';
 
 export interface StockImpactResult {
   symbol: string;
   companyName: string;
   layoffDate: string;
   laidOff: number;
-  priceOnDay: number;
-  price7Days: number;
-  price30Days: number;
-  change7Days: number;
-  change30Days: number;
-  dailyPrices: DailyPrice[];
-}
-
-interface FinnhubCandle {
-  s: string; // status: "ok" or "no_data"
-  c: number[]; // close prices
-  h: number[]; // high prices
-  l: number[]; // low prices
-  o: number[]; // open prices
-  t: number[]; // timestamps
-  v: number[]; // volumes
+  priceBefore: number;   // close day before announcement
+  priceDay: number;      // close on announcement day
+  priceAfter: number;    // close day after announcement
+  changeDayOf: number;   // % change day-of vs day-before
+  changeDayAfter: number; // % change day-after vs day-before
 }
 
 function parseDateMMDDYYYY(dateStr: string): Date {
-  // Format: "M/D/YYYY"
   const parts = dateStr.split('/');
   return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
 }
 
-function toUnixTimestamp(date: Date): number {
+function toUnix(date: Date): number {
   return Math.floor(date.getTime() / 1000);
-}
-
-function formatDateISO(ts: number): string {
-  const d = new Date(ts * 1000);
-  return d.toISOString().split('T')[0];
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchStockCandle(
+async function fetchDayPrices(
   symbol: string,
   layoffDate: Date
-): Promise<{ dailyPrices: DailyPrice[]; priceOnDay: number; price7Days: number; price30Days: number } | null> {
-  // 5 trading days before (~7 calendar days) to 30 trading days after (~45 calendar days)
-  const fromDate = new Date(layoffDate);
-  fromDate.setDate(fromDate.getDate() - 10);
-  const toDate = new Date(layoffDate);
-  toDate.setDate(toDate.getDate() + 45);
-
-  const from = toUnixTimestamp(fromDate);
-  const to = toUnixTimestamp(toDate);
+): Promise<{ priceBefore: number; priceDay: number; priceAfter: number } | null> {
+  // Get a window: 5 days before to 3 days after to account for weekends
+  const from = new Date(layoffDate);
+  from.setDate(from.getDate() - 7);
+  const to = new Date(layoffDate);
+  to.setDate(to.getDate() + 5);
 
   try {
-    const res = await fetch(`/api/finnhub?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&resolution=D`);
+    const res = await fetch(`/api/finnhub?symbol=${encodeURIComponent(symbol)}&from=${toUnix(from)}&to=${toUnix(to)}`);
     if (!res.ok) return null;
 
-    const data = (await res.json()) as FinnhubCandle;
-    if (data.s !== 'ok' || !data.c || data.c.length === 0) return null;
+    const data = await res.json();
+    if (!data.timestamps || data.timestamps.length < 3) return null;
 
-    const dailyPrices: DailyPrice[] = data.t.map((ts, i) => ({
-      date: formatDateISO(ts),
-      close: data.c[i],
-    }));
+    const timestamps: number[] = data.timestamps;
+    const closes: number[] = data.closes;
 
-    const layoffTs = toUnixTimestamp(layoffDate);
+    // Find the trading day closest to (on or after) the layoff date
+    const layoffUnix = toUnix(layoffDate);
+    let dayIdx = timestamps.findIndex(ts => ts >= layoffUnix);
+    if (dayIdx === -1) dayIdx = timestamps.length - 1;
+    if (dayIdx === 0) dayIdx = 1; // need at least one day before
 
-    // Find the closest trading day on or after the layoff date
-    let dayIdx = data.t.findIndex(ts => ts >= layoffTs);
-    if (dayIdx === -1) dayIdx = data.t.length - 1;
+    const priceBefore = closes[dayIdx - 1];
+    const priceDay = closes[dayIdx];
+    const priceAfter = dayIdx + 1 < closes.length ? closes[dayIdx + 1] : closes[dayIdx];
 
-    const priceOnDay = data.c[dayIdx];
+    if (!priceBefore || !priceDay) return null;
 
-    // ~7 trading days after
-    const idx7 = Math.min(dayIdx + 7, data.c.length - 1);
-    const price7Days = data.c[idx7];
-
-    // ~30 trading days after (or as far as we have)
-    const idx30 = Math.min(dayIdx + 30, data.c.length - 1);
-    const price30Days = data.c[idx30];
-
-    return { dailyPrices, priceOnDay, price7Days, price30Days };
+    return { priceBefore, priceDay, priceAfter };
   } catch {
     return null;
   }
@@ -99,23 +68,21 @@ async function fetchStockCandle(
 export async function fetchStockImpacts(
   layoffEvents: { company: string; date: string; laidOff: number | null }[]
 ): Promise<StockImpactResult[]> {
-  // Check sessionStorage cache
+  // Check cache
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached) as StockImpactResult[];
       if (parsed.length > 0) return parsed;
     }
-  } catch {
-    // Ignore
-  }
+  } catch { /* ignore */ }
 
-  // Filter to events with known tickers and laidOff > 500
+  // Filter to events with known tickers and significant layoffs
   const eligible = layoffEvents.filter(
     e => companyTickers[e.company] && e.laidOff && e.laidOff > 500
   );
 
-  // Group by company and take the largest layoff event per company
+  // Largest layoff per company
   const byCompany = new Map<string, { company: string; date: string; laidOff: number }>();
   for (const e of eligible) {
     const existing = byCompany.get(e.company);
@@ -124,7 +91,7 @@ export async function fetchStockImpacts(
     }
   }
 
-  // Sort by laidOff descending and take top 15
+  // Top 15 by size
   const top = Array.from(byCompany.values())
     .sort((a, b) => b.laidOff - a.laidOff)
     .slice(0, 15);
@@ -134,39 +101,35 @@ export async function fetchStockImpacts(
   for (const event of top) {
     const symbol = companyTickers[event.company];
     const layoffDate = parseDateMMDDYYYY(event.date);
+    const prices = await fetchDayPrices(symbol, layoffDate);
 
-    const candle = await fetchStockCandle(symbol, layoffDate);
-    if (candle && candle.priceOnDay > 0) {
-      const change7Days = ((candle.price7Days - candle.priceOnDay) / candle.priceOnDay) * 100;
-      const change30Days = ((candle.price30Days - candle.priceOnDay) / candle.priceOnDay) * 100;
+    if (prices) {
+      const changeDayOf = ((prices.priceDay - prices.priceBefore) / prices.priceBefore) * 100;
+      const changeDayAfter = ((prices.priceAfter - prices.priceBefore) / prices.priceBefore) * 100;
 
       results.push({
         symbol,
         companyName: event.company,
         layoffDate: event.date,
         laidOff: event.laidOff,
-        priceOnDay: candle.priceOnDay,
-        price7Days: candle.price7Days,
-        price30Days: candle.price30Days,
-        change7Days: Math.round(change7Days * 100) / 100,
-        change30Days: Math.round(change30Days * 100) / 100,
-        dailyPrices: candle.dailyPrices,
+        priceBefore: Math.round(prices.priceBefore * 100) / 100,
+        priceDay: Math.round(prices.priceDay * 100) / 100,
+        priceAfter: Math.round(prices.priceAfter * 100) / 100,
+        changeDayOf: Math.round(changeDayOf * 100) / 100,
+        changeDayAfter: Math.round(changeDayAfter * 100) / 100,
       });
     }
 
-    // Rate limit: 200ms between requests
-    await delay(200);
+    await delay(300);
   }
 
-  // Sort by change30Days ascending (worst first)
-  results.sort((a, b) => a.change30Days - b.change30Days);
+  // Sort by day-of change ascending (biggest drops first)
+  results.sort((a, b) => a.changeDayOf - b.changeDayOf);
 
-  // Cache results
+  // Cache
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(results));
-  } catch {
-    // Ignore
-  }
+  } catch { /* ignore */ }
 
   return results;
 }
