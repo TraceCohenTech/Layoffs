@@ -7,11 +7,11 @@ export interface StockImpactResult {
   companyName: string;
   layoffDate: string;
   laidOff: number;
-  priceBefore: number;   // close day before announcement
-  priceDay: number;      // close on announcement day
-  priceAfter: number;    // close day after announcement
-  changeDayOf: number;   // % change day-of vs day-before
-  changeDayAfter: number; // % change day-after vs day-before
+  priceBefore: number;
+  priceDay: number;
+  priceAfter: number;
+  changeDayOf: number;
+  changeDayAfter: number;
 }
 
 function parseDateMMDDYYYY(dateStr: string): Date {
@@ -31,7 +31,6 @@ async function fetchDayPrices(
   symbol: string,
   layoffDate: Date
 ): Promise<{ priceBefore: number; priceDay: number; priceAfter: number } | null> {
-  // Get a window: 5 days before to 3 days after to account for weekends
   const from = new Date(layoffDate);
   from.setDate(from.getDate() - 7);
   const to = new Date(layoffDate);
@@ -42,31 +41,24 @@ async function fetchDayPrices(
     if (!res.ok) return null;
 
     const data = await res.json();
-    console.log(`[StockImpact] ${symbol} response:`, { timestamps: data.timestamps?.length, closes: data.closes?.length });
-    if (!data.timestamps || data.timestamps.length < 3) {
-      console.log(`[StockImpact] ${symbol} rejected: not enough data points`);
-      return null;
-    }
+    if (!data.timestamps || data.timestamps.length < 3) return null;
 
     const timestamps: number[] = data.timestamps;
     const closes: number[] = data.closes;
 
-    // Find the trading day closest to (on or after) the layoff date
     const layoffUnix = toUnix(layoffDate);
     let dayIdx = timestamps.findIndex(ts => ts >= layoffUnix);
     if (dayIdx === -1) dayIdx = timestamps.length - 1;
-    if (dayIdx === 0) dayIdx = 1; // need at least one day before
+    if (dayIdx === 0) dayIdx = 1;
 
     const priceBefore = closes[dayIdx - 1];
     const priceDay = closes[dayIdx];
     const priceAfter = dayIdx + 1 < closes.length ? closes[dayIdx + 1] : closes[dayIdx];
 
-    console.log(`[StockImpact] ${symbol} prices: before=${priceBefore}, day=${priceDay}, after=${priceAfter}, dayIdx=${dayIdx}`);
     if (priceBefore == null || priceDay == null || isNaN(priceBefore) || isNaN(priceDay)) return null;
 
     return { priceBefore, priceDay, priceAfter };
-  } catch (err) {
-    console.error(`[StockImpact] Failed to fetch ${symbol}:`, err);
+  } catch {
     return null;
   }
 }
@@ -74,7 +66,6 @@ async function fetchDayPrices(
 export async function fetchStockImpacts(
   layoffEvents: { company: string; date: string; laidOff: number | null }[]
 ): Promise<StockImpactResult[]> {
-  // Check cache
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -83,13 +74,10 @@ export async function fetchStockImpacts(
     }
   } catch { /* ignore */ }
 
-  // Filter to events with known tickers and significant layoffs
   const eligible = layoffEvents.filter(
     e => companyTickers[e.company] && e.laidOff && e.laidOff > 500
   );
-  console.log(`[StockImpact] ${layoffEvents.length} total events, ${eligible.length} eligible`);
 
-  // Largest layoff per company
   const byCompany = new Map<string, { company: string; date: string; laidOff: number }>();
   for (const e of eligible) {
     const existing = byCompany.get(e.company);
@@ -98,19 +86,15 @@ export async function fetchStockImpacts(
     }
   }
 
-  // Top 15 by size
   const top = Array.from(byCompany.values())
     .sort((a, b) => b.laidOff - a.laidOff)
     .slice(0, 15);
 
   const results: StockImpactResult[] = [];
 
-  console.log(`[StockImpact] Fetching ${top.length} companies:`, top.map(e => e.company));
-
   for (const event of top) {
     const symbol = companyTickers[event.company];
     const layoffDate = parseDateMMDDYYYY(event.date);
-    console.log(`[StockImpact] Fetching ${symbol} for ${event.company} (${event.date})`);
     const prices = await fetchDayPrices(symbol, layoffDate);
 
     if (prices) {
@@ -133,10 +117,8 @@ export async function fetchStockImpacts(
     await delay(300);
   }
 
-  // Sort by day-of change ascending (biggest drops first)
   results.sort((a, b) => a.changeDayOf - b.changeDayOf);
 
-  // Cache
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(results));
   } catch { /* ignore */ }

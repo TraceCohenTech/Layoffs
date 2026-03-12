@@ -15,7 +15,7 @@ export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.4 }}
-      className="mb-6 mt-12 first:mt-0"
+      className="mb-4 mt-8 first:mt-0"
     >
       <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{title}</h2>
       {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
