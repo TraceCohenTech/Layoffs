@@ -24,8 +24,11 @@ import { RevenuePerEmployee } from './components/RevenuePerEmployee';
 import { EfficiencyMetrics } from './components/EfficiencyMetrics';
 import { HistoricalHeadcount } from './components/HistoricalHeadcount';
 import { MacroIndicators } from './components/MacroIndicators';
+import { StockImpact } from './components/StockImpact';
 import { fetchFredData } from './services/fred';
+import { fetchStockImpacts } from './services/finnhub';
 import type { FredDataPoint } from './services/fred';
+import type { StockImpactResult } from './services/finnhub';
 
 // Enrich base data with divisions, AI tags, and additional companies
 const enrichedData = enrichData(layoffsData);
@@ -41,6 +44,11 @@ function App() {
   const [fredLoading, setFredLoading] = useState(true);
   const [fredError, setFredError] = useState(false);
 
+  // Finnhub stock impact data
+  const [stockData, setStockData] = useState<StockImpactResult[]>([]);
+  const [stockLoading, setStockLoading] = useState(true);
+  const [stockError, setStockError] = useState(false);
+
   const loadFredData = useCallback(async () => {
     setFredLoading(true);
     setFredError(false);
@@ -55,9 +63,24 @@ function App() {
     }
   }, []);
 
+  const loadStockData = useCallback(async () => {
+    setStockLoading(true);
+    setStockError(false);
+    try {
+      const results = await fetchStockImpacts(enrichedData);
+      setStockData(results);
+      if (results.length === 0) setStockError(true);
+    } catch {
+      setStockError(true);
+    } finally {
+      setStockLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadFredData();
-  }, [loadFredData]);
+    loadStockData();
+  }, [loadFredData, loadStockData]);
 
   const [filters, setFilters] = useState<FilterState>({
     yearRange: [2022, yearRange[1]],
@@ -127,6 +150,10 @@ function App() {
         {/* Macro Context — FRED data */}
         <SectionHeader title="Macro Context" subtitle="Federal Reserve Economic Data (FRED)" />
         <MacroIndicators data={fredData} loading={fredLoading} error={fredError} onRetry={loadFredData} />
+
+        {/* Stock Impact */}
+        <SectionHeader title="Stock Impact" subtitle="How markets reacted to major layoff announcements" />
+        <StockImpact data={stockData} loading={stockLoading} error={stockError} onRetry={loadStockData} />
 
         {/* The AI Factor */}
         <SectionHeader title="The AI Factor" subtitle="Layoffs explicitly driven by AI adoption and automation" />
