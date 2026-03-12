@@ -102,8 +102,8 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
 
   if (loading) {
     return (
-      <div className="mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -118,7 +118,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="glass rounded-xl border border-slate-200/60 p-8 mb-8 text-center"
+        className="glass rounded-xl border border-slate-200/60 p-6 text-center"
       >
         <p className="text-slate-600 font-medium mb-3">
           {error ? 'Unable to load stock impact data' : 'No stock impact data available'}
@@ -139,9 +139,9 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
   const droppedCount = data.filter(d => d.changeDayOf < 0).length;
 
   return (
-    <div className="mb-8">
+    <div>
       {/* Summary KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <SummaryCard
           label="Avg Day-Of Change"
           value={formatPct(avgDayOf)}

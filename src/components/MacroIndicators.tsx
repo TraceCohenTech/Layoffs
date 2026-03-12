@@ -122,7 +122,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
 
   if (loading) {
     return (
-      <div className="mb-8">
+      <div className="">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <SkeletonCard />
           <SkeletonCard />
@@ -138,7 +138,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="glass rounded-xl border border-slate-200/60 p-8 mb-8 text-center"
+        className="glass rounded-xl border border-slate-200/60 p-6 text-center"
       >
         <p className="text-slate-600 font-medium mb-3">Unable to load macro data</p>
         <button
@@ -157,7 +157,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
   const openings = getYearAgoChange(data, 'jobOpenings');
 
   return (
-    <div className="mb-8">
+    <div className="">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <KPICard
