@@ -1,7 +1,4 @@
-const API_KEY = '97dcf41c7648ee044dc4c08ccc59396f';
-const BASE_URL = 'https://api.stlouisfed.org/fred/series/observations';
 const CACHE_KEY = 'fred_macro_data';
-const OBSERVATION_START = '2020-01-01';
 
 export interface FredDataPoint {
   date: string;
@@ -20,14 +17,7 @@ interface FredResponse {
 }
 
 function buildUrl(seriesId: string): string {
-  const params = new URLSearchParams({
-    series_id: seriesId,
-    api_key: API_KEY,
-    file_type: 'json',
-    observation_start: OBSERVATION_START,
-    frequency: 'm',
-  });
-  return `${BASE_URL}?${params.toString()}`;
+  return `/api/fred?series_id=${encodeURIComponent(seriesId)}`;
 }
 
 function toYearMonth(dateStr: string): string {
