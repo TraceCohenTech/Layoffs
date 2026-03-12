@@ -11,7 +11,6 @@ import {
   Legend,
 } from 'recharts';
 import { TrendingUp, TrendingDown, RefreshCw, Activity, Briefcase, Users } from 'lucide-react';
-import { useInView } from '../hooks/useInView';
 import { TOOLTIP_STYLE, TOOLTIP_LABEL_STYLE, GRID_STROKE, AXIS_TICK_FILL, AXIS_LINE_STROKE, AXIS_FONT_SIZE } from '../utils/chartTheme';
 import type { FredDataPoint } from '../services/fred';
 
@@ -59,13 +58,10 @@ function KPICard({
   iconColor: string;
   delay: number;
 }) {
-  const [ref, inView] = useInView();
-
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay * 0.1, duration: 0.5 }}
       whileHover={{ y: -4 }}
       className="glass rounded-xl border border-slate-200/60 p-5 transition-all duration-300 cursor-default"
@@ -118,7 +114,6 @@ function SkeletonChart() {
 }
 
 export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicatorsProps) {
-  const [ref, inView] = useInView();
 
   if (loading) {
     return (
@@ -188,13 +183,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
       </div>
 
       {/* Dual-axis chart */}
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="glass rounded-xl border border-slate-200/60 p-6"
-      >
+      <div className="glass rounded-xl border border-slate-200/60 p-6">
         <h3 className="text-lg font-semibold text-slate-900 mb-1">Labor Market Trends</h3>
         <p className="text-sm text-slate-500 mb-4">Unemployment Rate vs Job Openings since 2020</p>
 
@@ -297,7 +286,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
             <strong>Insight:</strong> The labor market context helps explain layoff waves — rising unemployment and falling job openings often coincide with increased layoff activity.
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

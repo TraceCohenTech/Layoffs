@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, RefreshCw, BarChart3, Activity, ShieldCheck } from 'lucide-react';
-import { useInView } from '../hooks/useInView';
 import type { StockImpactResult } from '../services/finnhub';
 
 interface StockImpactProps {
@@ -42,13 +41,10 @@ function SummaryCard({
   positive: boolean;
   delay: number;
 }) {
-  const [ref, inView] = useInView();
-
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: d * 0.1, duration: 0.5 }}
       whileHover={{ y: -4 }}
       className="glass rounded-xl border border-slate-200/60 p-5 transition-all duration-300 cursor-default"
@@ -98,7 +94,6 @@ function ChangeTag({ value }: { value: number }) {
 }
 
 export function StockImpact({ data, loading, error, onRetry }: StockImpactProps) {
-  const [ref, inView] = useInView();
 
   if (loading) {
     return (
@@ -170,13 +165,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
       </div>
 
       {/* Impact Table */}
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="glass rounded-xl border border-slate-200/60 overflow-hidden"
-      >
+      <div className="glass rounded-xl border border-slate-200/60 overflow-hidden">
         {/* Header */}
         <div className="grid grid-cols-12 gap-2 items-center px-4 py-3 border-b border-slate-200/60 bg-slate-50/50">
           <div className="col-span-3">
@@ -230,7 +219,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
         <div className="chart-insight mx-4 mb-4 mt-4">
           <strong>Insight:</strong> Markets often react positively to layoffs at large companies, viewing cost-cutting as a path to profitability. The day-after change captures the full market digestion of the news.
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
