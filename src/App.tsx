@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { layoffsData, allCountries, yearRange } from './data/layoffs';
 import { enrichData, headlines } from './data/enrichments';
 import { financialsData } from './data/financials';
@@ -23,6 +23,9 @@ import { WorkforceImpact } from './components/WorkforceImpact';
 import { RevenuePerEmployee } from './components/RevenuePerEmployee';
 import { EfficiencyMetrics } from './components/EfficiencyMetrics';
 import { HistoricalHeadcount } from './components/HistoricalHeadcount';
+import { MacroIndicators } from './components/MacroIndicators';
+import { fetchFredData } from './services/fred';
+import type { FredDataPoint } from './services/fred';
 
 // Enrich base data with divisions, AI tags, and additional companies
 const enrichedData = enrichData(layoffsData);
@@ -33,6 +36,29 @@ const enrichedCountries = Array.from(new Set([...allCountries, ...enrichedData.m
 const revenueRanked = calcRevenuePerEmployee(financialsData, 20);
 
 function App() {
+  // FRED macro data
+  const [fredData, setFredData] = useState<FredDataPoint[]>([]);
+  const [fredLoading, setFredLoading] = useState(true);
+  const [fredError, setFredError] = useState(false);
+
+  const loadFredData = useCallback(async () => {
+    setFredLoading(true);
+    setFredError(false);
+    try {
+      const data = await fetchFredData();
+      setFredData(data);
+      if (data.length === 0) setFredError(true);
+    } catch {
+      setFredError(true);
+    } finally {
+      setFredLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFredData();
+  }, [loadFredData]);
+
   const [filters, setFilters] = useState<FilterState>({
     yearRange: [2022, yearRange[1]],
     industry: '',
@@ -97,6 +123,10 @@ function App() {
         {/* The Timeline */}
         <SectionHeader title="The Timeline" subtitle="How layoffs evolved from correction to AI restructuring" />
         <TimelineChart data={monthlyData} />
+
+        {/* Macro Context — FRED data */}
+        <SectionHeader title="Macro Context" subtitle="Federal Reserve Economic Data (FRED)" />
+        <MacroIndicators data={fredData} loading={fredLoading} error={fredError} onRetry={loadFredData} />
 
         {/* The AI Factor */}
         <SectionHeader title="The AI Factor" subtitle="Layoffs explicitly driven by AI adoption and automation" />
