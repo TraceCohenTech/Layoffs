@@ -42,7 +42,11 @@ async function fetchDayPrices(
     if (!res.ok) return null;
 
     const data = await res.json();
-    if (!data.timestamps || data.timestamps.length < 3) return null;
+    console.log(`[StockImpact] ${symbol} response:`, { timestamps: data.timestamps?.length, closes: data.closes?.length });
+    if (!data.timestamps || data.timestamps.length < 3) {
+      console.log(`[StockImpact] ${symbol} rejected: not enough data points`);
+      return null;
+    }
 
     const timestamps: number[] = data.timestamps;
     const closes: number[] = data.closes;
@@ -57,7 +61,8 @@ async function fetchDayPrices(
     const priceDay = closes[dayIdx];
     const priceAfter = dayIdx + 1 < closes.length ? closes[dayIdx + 1] : closes[dayIdx];
 
-    if (!priceBefore || !priceDay) return null;
+    console.log(`[StockImpact] ${symbol} prices: before=${priceBefore}, day=${priceDay}, after=${priceAfter}, dayIdx=${dayIdx}`);
+    if (priceBefore == null || priceDay == null || isNaN(priceBefore) || isNaN(priceDay)) return null;
 
     return { priceBefore, priceDay, priceAfter };
   } catch (err) {
