@@ -47,7 +47,7 @@ function SummaryCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: d * 0.1, duration: 0.5 }}
       whileHover={{ y: -4 }}
-      className="glass rounded-xl border border-slate-200/60 p-5 transition-all duration-300 cursor-default"
+      className="glass rounded-xl border border-slate-200/60 p-4 transition-all duration-300 cursor-default"
     >
       <div className="flex items-start justify-between mb-3">
         <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">{label}</span>
@@ -55,7 +55,7 @@ function SummaryCard({
           <Icon className="w-4 h-4" style={{ color: iconColor }} />
         </div>
       </div>
-      <p className={`text-2xl md:text-3xl font-bold tabular-nums ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+      <p className={`text-xl md:text-2xl font-bold tabular-nums ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
         {value}{suffix && <span className="text-lg font-semibold ml-0.5">{suffix}</span>}
       </p>
     </motion.div>
@@ -98,7 +98,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
   if (loading) {
     return (
       <div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -136,7 +136,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
   return (
     <div>
       {/* Summary KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <SummaryCard
           label="Avg Day-Of Change"
           value={formatPct(avgDayOf)}
@@ -167,7 +167,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
       {/* Impact Table */}
       <div className="glass rounded-xl border border-slate-200/60 overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-12 gap-2 items-center px-4 py-3 border-b border-slate-200/60 bg-slate-50/50">
+        <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-b border-slate-200/60 bg-slate-50/50">
           <div className="col-span-3">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</span>
           </div>
@@ -193,7 +193,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04, duration: 0.3 }}
-              className="grid grid-cols-12 gap-2 items-center px-4 py-3 hover:bg-slate-50/80 transition-colors"
+              className="grid grid-cols-12 gap-2 items-center px-3 py-2 hover:bg-slate-50/80 transition-colors"
             >
               <div className="col-span-3">
                 <p className="text-sm font-semibold text-slate-900 truncate">{item.companyName}</p>
@@ -216,7 +216,7 @@ export function StockImpact({ data, loading, error, onRetry }: StockImpactProps)
           ))}
         </div>
 
-        <div className="chart-insight mx-4 mb-4 mt-4">
+        <div className="chart-insight mx-3 mb-3 mt-3">
           <strong>Insight:</strong> Markets often react positively to layoffs at large companies, viewing cost-cutting as a path to profitability. The day-after change captures the full market digestion of the news.
         </div>
       </div>

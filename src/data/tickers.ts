@@ -46,4 +46,5 @@ export const companyTickers: Record<string, string> = {
   'Verizon': 'VZ',
   'T-Mobile': 'TMUS',
   'AT&T': 'T',
+  'Atlassian': 'TEAM',
 };

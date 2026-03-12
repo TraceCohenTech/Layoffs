@@ -64,7 +64,7 @@ function KPICard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay * 0.1, duration: 0.5 }}
       whileHover={{ y: -4 }}
-      className="glass rounded-xl border border-slate-200/60 p-5 transition-all duration-300 cursor-default"
+      className="glass rounded-xl border border-slate-200/60 p-4 transition-all duration-300 cursor-default"
     >
       <div className="flex items-start justify-between mb-3">
         <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">{label}</span>
@@ -72,7 +72,7 @@ function KPICard({
           <Icon className="w-4 h-4" style={{ color: iconColor }} />
         </div>
       </div>
-      <p className="text-2xl md:text-3xl font-bold text-slate-900 tabular-nums">
+      <p className="text-xl md:text-2xl font-bold text-slate-900 tabular-nums">
         {value}{suffix && <span className="text-lg font-semibold text-slate-500 ml-0.5">{suffix}</span>}
       </p>
       {change !== null && (
@@ -108,7 +108,7 @@ function SkeletonChart() {
     <div className="glass rounded-xl border border-slate-200/60 p-6 animate-pulse">
       <div className="h-4 w-48 bg-slate-200 rounded mb-2" />
       <div className="h-3 w-64 bg-slate-200 rounded mb-6" />
-      <div className="h-[340px] bg-slate-100 rounded-lg" />
+      <div className="h-[280px] bg-slate-100 rounded-lg" />
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
   if (loading) {
     return (
       <div className="">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -154,7 +154,7 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
   return (
     <div className="">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <KPICard
           label="Unemployment Rate"
           value={unemployment ? `${unemployment.current.toFixed(1)}` : '--'}
@@ -183,11 +183,11 @@ export function MacroIndicators({ data, loading, error, onRetry }: MacroIndicato
       </div>
 
       {/* Dual-axis chart */}
-      <div className="glass rounded-xl border border-slate-200/60 p-6">
+      <div className="glass rounded-xl border border-slate-200/60 p-4">
         <h3 className="text-lg font-semibold text-slate-900 mb-1">Labor Market Trends</h3>
         <p className="text-sm text-slate-500 mb-4">Unemployment Rate vs Job Openings since 2020</p>
 
-        <div className="h-[340px]">
+        <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
